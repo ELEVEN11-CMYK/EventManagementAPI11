@@ -1,11 +1,16 @@
-﻿using EventManagementAPI.Data;
+using EventManagementAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
+using System.Text.Json.Serialization;
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 
 // ✅ Add Authentication
@@ -33,6 +38,12 @@ builder.Services.AddAuthorization();
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // 👇 This line allows enums (like AchievementCategory) to accept string values such as "Academic"
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 // Add DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -44,6 +55,15 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Enable static files for uploaded logos
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "Uploads")
+    ),
+    RequestPath = "/uploads"
+});
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -51,6 +71,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+// ✅ ADD THIS BLOCK ↓↓↓
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "EventLogos")),
+    RequestPath = "/Uploads/EventLogos"
+});
 
 app.UseHttpsRedirection();
 
