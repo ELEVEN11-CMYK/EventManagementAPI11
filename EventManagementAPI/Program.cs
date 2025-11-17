@@ -1,3 +1,4 @@
+
 using EventManagementAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
@@ -8,6 +9,12 @@ using System.Text.Json.Serialization;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.UseWebRoot("wwwroot");
+
+
+
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -81,9 +88,30 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+app.UseAuthentication();
 
 app.UseAuthorization();
+
+// ⬇️⬇️⬇️ **STATIC FILES START** ⬇️⬇️⬇️
+// ⬇️⬇️⬇️ **STEP 5 — ENABLE STATIC FILES (Add This)** ⬇️⬇️⬇️
+app.UseStaticFiles();   // ⭐ Enables wwwroot (default public folder)
+
+// ⭐ Enable static access for “Uploads/”
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "Uploads")),
+    RequestPath = "/uploads"
+});
+
+// ⭐ Static access for EventLogos folder
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "EventLogos")),
+    RequestPath = "/uploads/eventlogos"
+});
+// ⬆️⬆️⬆️ **STATIC FILES END** ⬆️⬆️⬆️
 
 app.MapControllers();
 
