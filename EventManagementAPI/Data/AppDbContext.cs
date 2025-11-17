@@ -15,6 +15,10 @@ namespace EventManagementAPI.Data
         public DbSet<User> Users { get; set; }
 
         public DbSet<Achievement> Achievements { get; set; }
+
+        public DbSet<Gallery> Galleries { get; set; }
+        public DbSet<GalleryImage> GalleryImages { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // ✅ Convert Enum → String in database
