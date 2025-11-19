@@ -1,4 +1,6 @@
-﻿namespace EventManagementAPI.Models
+using System.Text.Json.Serialization;
+
+namespace EventManagementAPI.Models
 {
     public class GalleryImage
     {
@@ -6,6 +8,7 @@
         public string ImageUrl { get; set; }
         public int GalleryId { get; set; }
 
+        [JsonIgnore]
         public Gallery Gallery { get; set; }
     }
 }
