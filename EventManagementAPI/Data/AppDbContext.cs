@@ -21,6 +21,8 @@ namespace EventManagementAPI.Data
 
         public DbSet<Facility> Facilities { get; set; }
 
+        public DbSet<Department> Departments { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
