@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using EventManagementAPI.Data;
 using EventManagementAPI.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -53,7 +53,8 @@ namespace EventManagementAPI.Controllers
 
             if (!string.IsNullOrEmpty(dto.EventType))
             {
-                var validTypes = new[] { "school", "corporate", "community" };
+                var validTypes = new[] { "collage","school","cultural","educational","sports" };
+
                 if (!validTypes.Contains(dto.EventType.ToLower()))
                     return BadRequest(new { message = "Invalid event type" });
 
@@ -67,39 +68,85 @@ namespace EventManagementAPI.Controllers
             return Ok(new { message = "Event updated successfully" });
         }
 
-        // 🔵 GET: api/events ✅ Added list + search + filter + sort
+        //// 🔵 GET: api/events ✅ Added list + search + filter + sort
+        //[HttpGet]
+        //[AllowAnonymous]
+        //public async Task<IActionResult> GetAllEvents(
+        //    string? search = null,
+        //    string? eventType = null,
+        //    string? dateFilter = null,   // upcoming | past | today
+        //    string? sortBy = "eventDate" // eventDate | title
+        //)
+        //{
+        //    var query = _context.Events.Where(e => !e.IsDeleted).AsQueryable();
+        //    var currentDate = DateTime.UtcNow.Date;
+
+        //    // 🔍 Search support
+        //    if (!string.IsNullOrEmpty(search))
+        //        query = query.Where(e => e.Title.Contains(search));
+
+        //    // 🎯 Filter by event type
+        //    if (!string.IsNullOrEmpty(eventType))
+        //        query = query.Where(e => e.EventType.ToLower() == eventType.ToLower());
+
+        //    // ⏰ Date filters
+        //    if (dateFilter == "upcoming")
+        //        query = query.Where(e => e.EventDate > currentDate);
+        //    else if (dateFilter == "past")
+        //        query = query.Where(e => e.EventDate < currentDate);
+        //    else if (dateFilter == "today")
+        //        query = query.Where(e => e.EventDate.Date == currentDate);
+
+        //    // ↕️ Sorting support
+        //    query = sortBy switch
+        //    {
+        //        "title" => query.OrderBy(e => e.Title),
+        //        _ => query.OrderBy(e => e.EventDate)
+        //    };
+
+        //    var events = await query.ToListAsync();
+        //    return Ok(events);
+        //}
+
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetAllEvents(
-            string? search = null,
-            string? eventType = null,
-            string? dateFilter = null,   // upcoming | past | today
-            string? sortBy = "eventDate" // eventDate | title
-        )
+    string? search = null,
+    string? eventType = null,
+    string? dateFilter = null,
+    string? sortBy = "eventDate"
+)
         {
             var query = _context.Events.Where(e => !e.IsDeleted).AsQueryable();
             var currentDate = DateTime.UtcNow.Date;
 
-            // 🔍 Search support
+            // 🔍 Search support (NULL SAFE)
             if (!string.IsNullOrEmpty(search))
-                query = query.Where(e => e.Title.Contains(search));
+                query = query.Where(e =>
+                    (e.Title ?? "").ToLower().Contains(search.ToLower()) ||
+                    (e.Description ?? "").ToLower().Contains(search.ToLower())
+                );
 
-            // 🎯 Filter by event type
+            // 🎯 Filter by event type (NULL SAFE + CASE INSENSITIVE)
             if (!string.IsNullOrEmpty(eventType))
-                query = query.Where(e => e.EventType.ToLower() == eventType.ToLower());
+                query = query.Where(e =>
+                    (e.EventType ?? "").ToLower().Contains(eventType.ToLower())
+                );
 
             // ⏰ Date filters
             if (dateFilter == "upcoming")
                 query = query.Where(e => e.EventDate > currentDate);
+
             else if (dateFilter == "past")
                 query = query.Where(e => e.EventDate < currentDate);
+
             else if (dateFilter == "today")
                 query = query.Where(e => e.EventDate.Date == currentDate);
 
-            // ↕️ Sorting support
+            // ↕️ Sorting support (NULL SAFE)
             query = sortBy switch
             {
-                "title" => query.OrderBy(e => e.Title),
+                "title" => query.OrderBy(e => e.Title ?? ""),
                 _ => query.OrderBy(e => e.EventDate)
             };
 
@@ -117,6 +164,67 @@ namespace EventManagementAPI.Controllers
 
             return Ok(evt);
         }
+        // 🟢 POST: api/events/upload-logo
+        [HttpPost("upload-logo")]
+        public async Task<IActionResult> UploadEventLogo(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "No file uploaded" });
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+                return BadRequest(new { message = "Invalid file type. Allowed: .jpg, .jpeg, .png, .webp" });
+
+            if (file.Length > 2 * 1024 * 1024)
+                return BadRequest(new { message = "File too large. Max 2 MB allowed" });
+
+            var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "EventLogos");
+            if (!Directory.Exists(uploadPath))
+                Directory.CreateDirectory(uploadPath);
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(uploadPath, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var fileUrl = $"{Request.Scheme}://{Request.Host}/uploads/eventlogos/{fileName}";
+
+            return Ok(new
+            {
+                message = "File uploaded successfully",
+                fileUrl
+            });
+        }
+
+        // 🔴 DELETE: api/events/{id}/logo
+        [HttpDelete("{id}/logo")]
+        public async Task<IActionResult> DeleteEventLogo(int id)
+        {
+            var evt = await _context.Events.FindAsync(id);
+            if (evt == null)
+                return NotFound(new { message = "Event not found." });
+
+            if (string.IsNullOrEmpty(evt.EventLogo))
+                return BadRequest(new { message = "No logo found for this event." });
+
+            var fileName = Path.GetFileName(new Uri(evt.EventLogo).LocalPath);
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "EventLogos", fileName);
+
+            if (System.IO.File.Exists(filePath))
+                System.IO.File.Delete(filePath);
+
+            evt.EventLogo = null;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Event logo deleted successfully." });
+        }
+
+
     }
-    }
+}
 
