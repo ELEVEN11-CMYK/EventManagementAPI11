@@ -1,4 +1,3 @@
-
 using EventManagementAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
@@ -44,13 +43,21 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // Add services to the container.
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
+//builder.Services.AddControllers()
+//    .AddJsonOptions(options =>
+//    {
+//        // 👇 This line allows enums (like AchievementCategory) to accept string values such as "Academic"
+//        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+//    });
+
+// Add services to the container.
 builder.Services.AddControllers()
-    .AddJsonOptions(options =>
+    .AddNewtonsoftJson(options =>
     {
-        // 👇 This line allows enums (like AchievementCategory) to accept string values such as "Academic"
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
     });
+
 
 // Add DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
