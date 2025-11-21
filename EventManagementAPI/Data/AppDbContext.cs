@@ -26,6 +26,8 @@ namespace EventManagementAPI.Data
         
         public DbSet<SchoolInfo> SchoolInfos { get; set; }
 
+        public DbSet<ContactMessage> ContactMessages { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
